@@ -1,0 +1,46 @@
+#!/bin/sh
+# Based on lfimg: https://github.com/thimc/lfimg
+
+dir=$(dirname "$(readlink -f "$0")")
+share=
+for d in "$dir" "$dir/../share/lfv"; do
+	if [ -x "$d/previewer" ]; then
+		share=$(readlink -f "$d")
+		break
+	fi
+done
+if [ -z "$share" ]; then
+	echo "lfv: previewer not found" >&2
+	exit 1
+fi
+
+set -- -command "set previewer '$share/previewer'; set cleaner '$share/cleaner'" "$@"
+
+ub='' out=${LFV_OUTPUT:-}
+if command -v ueberzugpp >/dev/null 2>&1; then
+	if [ -z "$out" ]; then
+		if [ -n "$KITTY_WINDOW_ID" ] || [ -n "$KONSOLE_VERSION" ] || [ -n "$WEZTERM_PANE" ] || [ "$TERM" = xterm-ghostty ]; then
+			out=kitty
+		else
+			case $TERM in foot*) out=sixel ;; esac
+		fi
+	fi
+	ub="ueberzugpp layer --silent --no-cache${out:+ -o $out}"
+elif command -v ueberzug >/dev/null 2>&1; then
+	ub="ueberzug layer --silent --parser json"
+fi
+case $out in
+kitty | sixel) ;;
+*) if [ -z "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ] || [ -n "$SSH_TTY" ]; then ub=''; fi ;;
+esac
+[ -n "$ub" ] || exec lf "$@"
+
+FIFO_UEBERZUG=$(mktemp -u "${TMPDIR:-/tmp}/lfv-ueberzug.XXXXXX")
+mkfifo "$FIFO_UEBERZUG" || exec lf "$@"
+$ub < "$FIFO_UEBERZUG" &
+ub_pid=$!
+exec 3>"$FIFO_UEBERZUG"
+export FIFO_UEBERZUG
+trap 'exec 3>&-; rm -f "$FIFO_UEBERZUG"; kill "$ub_pid" 2>/dev/null' EXIT INT TERM
+
+lf "$@" 3>&-
