@@ -1,6 +1,6 @@
 # lfv
 
-The [lf](https://github.com/gokcehan/lf) build that ships with [Navi](https://navi-desktop.org). lfv displays file previews (such as images, PDFs, etc.) for lf, inspired by [lfimg](https://github.com/thimc/lfimg)'s approach.
+The previewer for [lf](https://github.com/gokcehan/lf) that ships with [Navi](https://navi-desktop.org). lfv displays file previews (such as images, PDFs, etc.) for lf, inspired by [lfimg](https://github.com/thimc/lfimg)'s approach.
 
 ## Install
 
